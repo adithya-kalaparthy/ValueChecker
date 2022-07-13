@@ -4,7 +4,7 @@ import os
 def find_matches_in_operator(json_string, tel_num):
     tel_num = str(tel_num)
     json_object = json.loads(json_string)
-    if '46' not in final_dict: #must have value 46 (local)
+    if '46' not in json_object: #must have value 46 (local)
         raise SystemExit(json_object['operator'] + '.json does not have "46" route')
     
     keys = list(json_object.keys())
