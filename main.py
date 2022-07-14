@@ -66,10 +66,11 @@ def compare_operators(tel_num):
                     if(int(final_result['code_match_len']) < int(match_result['code_match_len'])):
                         final_result = match_result
                     else:
-                        if(float(final_result['price']) > float(match_result['price'])):
-                            final_result = match_result
-                        elif(float(final_result['price']) == float(match_result['price'])):
-                            final_result['operator'] == final_result['operator'] + ' or ' + match_result['operator']
+                        if(int(final_result['code_match_len']) == int(match_result['code_match_len'])):
+                            if(float(final_result['price']) > float(match_result['price'])):
+                                final_result = match_result
+                            elif(float(final_result['price']) == float(match_result['price'])):
+                                final_result['operator'] == final_result['operator'] + ' or ' + match_result['operator']
              
     return final_result
 
