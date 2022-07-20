@@ -1,17 +1,23 @@
 import json
-import os 
+import os
+
+#initializing a list containing all the operator objects
+global operator_objects
+operator_objects = []
 
 def find_matches_in_operator(json_string, tel_num):
     tel_num = str(tel_num)
     json_object = json.loads(json_string)
-    if '46' not in json_object: #must have value 46 (local)
-        raise SystemExit(json_object['operator'] + '.json does not have "46" route')
-    
+
     keys = list(json_object.keys())
 
     #finds all the possible matches for the phone number which start with the keys in the json object 
-    matches = list(filter(None,map(lambda x: x if(tel_num.find(x) == 0) else None, keys))) 
-    
+    matches = []
+    for i in range(1,(len(tel_num)-1)):
+        sub_tel = tel_num[0:i]
+        if sub_tel in json_object:
+            matches.append(sub_tel)
+
     if(len(matches) == 0):
         longest_match = '46' #if there are no matches assume it is local
         result_final_tel_num = longest_match + tel_num
@@ -30,10 +36,20 @@ def find_matches_in_operator(json_string, tel_num):
 
     return json.dumps(result_object)
 
-def compare_operators(tel_num):
+def load_operator_files():
+    global operator_objects
     #use proper naming convention. The json file names should always start with 'operator_'
     operator_files = [filename for filename in os.listdir('tests') if filename.startswith("operator_")]
 
+    for operator_file in operator_files:
+        with open(os.path.join('tests', operator_file)) as f:
+            base_name = os.path.basename(operator_file)
+            json_object = json.load(f)
+            json_object.update({'operator': os.path.splitext(base_name)[0]})
+            operator_objects.append(json_object)
+
+def compare_operators(tel_num):
+    global operator_objects
     final_result = {
         'operator': '',
         'phone_num': '',
@@ -43,33 +59,23 @@ def compare_operators(tel_num):
         'price' : 0
         }
 
-    for operator_file in operator_files: 
-        with open('tests/'+operator_file) as f:
-            base_name = os.path.basename(operator_file)
-            json_object = json.load(f)
-            #the below update is usefull if the json file is generated randomly. If operator exists then it just gets updated
-            json_object.update({'operator': os.path.splitext(base_name)[0]})
-            json_string = json.dumps(json_object)
+    for operator_object in operator_objects:
+        json_string = json.dumps(operator_object)
+        match_result = find_matches_in_operator(json_string,tel_num)
+        match_result = json.loads(match_result)
+        #print(match_result)
 
-            #finds the longest operator-code match for the operator
-            match_result = find_matches_in_operator(json_string,tel_num)
-            match_result = json.loads(match_result)
-            #print(match_result)
-
-            if(int(match_result['match_count']) == 0):
-                if int(final_result['match_count']) == 0 and (float(final_result['price']) > float(match_result['price']) or float(final_result['price']) == 0) :
-                    final_result = match_result
+        if(int(match_result['match_count']) == 0):
+            if int(final_result['match_count']) == 0 and (float(final_result['price']) > float(match_result['price']) or float(final_result['price']) == 0) :
+                final_result = match_result
+        else:
+            if(int(final_result['match_count']) == 0):
+                final_result = match_result
             else:
-                if(int(final_result['match_count']) == 0):
+                if(float(final_result['price']) > float(match_result['price'])):
                     final_result = match_result
-                else:
-                    if(int(final_result['code_match_len']) < int(match_result['code_match_len'])):
-                        final_result = match_result
-                    elif(int(final_result['code_match_len']) == int(match_result['code_match_len'])):
-                        if(float(final_result['price']) > float(match_result['price'])):
-                            final_result = match_result
-                        elif(float(final_result['price']) == float(match_result['price'])):
-                            final_result['operator'] == final_result['operator'] + ' or ' + match_result['operator']
+                elif(float(final_result['price']) == float(match_result['price'])):
+                    final_result['operator'] == final_result['operator'] + ' or ' + match_result['operator']
              
     return final_result
 
@@ -84,11 +90,15 @@ if __name__ == "__main__":
             tel_num = int(tel_num)
 
         #compares all the operators and gets the result
+        load_operator_files()
         compared_result = compare_operators(tel_num)
-        print("Use operator " + compared_result['operator'] + " for Phone-number " + compared_result['phone_num'] + " with a price of " + str(round(compared_result['price'],2)) + '$/min')
+        if(compared_result['match_count'] > 0):
+            print("Use operator " + compared_result['operator'] + " for Phone-number " + compared_result['phone_num'] + " with a price of " + str(round(compared_result['price'],2)) + '$/min')
+        elif(compared_result['match_count'] == 0):
+            print("No operator code matches were found in the system. However if you want to use the following Phone number " + compared_result['phone_num'] + "\n"
+                  "Use " + compared_result['operator'] + " with a price of " + str(round(compared_result['price'],2)) + '$/min' )
     except ValueError as e:
         raise SystemExit('entered telephone number is invalid please use only intergers with format of "country_code areacode digits"')
-
 
         
 

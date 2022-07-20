@@ -8,6 +8,7 @@ if __name__ == "__main__":
     with open(input_file_path) as f:
         lines = f.readlines()
         final_dict = dict()
+        main.load_operator_files()
         for line in lines:
             try:
                 #remove spaces,'+','-' from a phone number
